@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2f8bff" />
+      <stop offset="1" stop-color="#35c8ff" />
+    </linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.26" />
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)" />
+  <rect width="512" height="256" rx="112" fill="url(#shine)" />
+
+  <!-- chat bubble -->
+  <path
+    d="M132 168h248a36 36 0 0 1 36 36v128a36 36 0 0 1-36 36H256l-74 60c-10 8-22 1-22-11v-49h-28a36 36 0 0 1-36-36V204a36 36 0 0 1 36-36z"
+    fill="#0b1220"
+    opacity="0.92"
+  />
+
+  <!-- T monogram -->
+  <path
+    d="M188 226h136a14 14 0 0 1 0 28h-54v86a14 14 0 0 1-28 0v-86h-54a14 14 0 0 1 0-28z"
+    fill="#ffffff"
+  />
+</svg>
