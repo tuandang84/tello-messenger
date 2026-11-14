@@ -296,6 +296,7 @@ export class ZaloBridge {
 
     this.deps.emit("auth:status", { zalo: this.getStatus() });
     await this.refreshContacts();
+    this.deps.store.syncHistory("all"); // Sync message history on restore
   }
 
   private handleQrEvent(event: LoginQRCallbackEvent): void {

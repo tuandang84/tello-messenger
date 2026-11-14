@@ -61,6 +61,7 @@ export class TelegramBridge {
       this.state = { connected: true, phase: "idle", user: displayName(me) };
       this.deps.emit("auth:status", { telegram: this.getStatus() });
       await this.refreshDialogs();
+      this.deps.store.syncHistory("all"); // Sync message history on restore
     } catch (error) {
       console.error("[telegram] restore failed:", error);
       this.setState({ connected: false, phase: "idle", error: "Phiên Telegram đã hết hạn" });
@@ -337,6 +338,9 @@ export class TelegramBridge {
         !mapped.outgoing && !isActive,
       );
       this.deps.emit("message:new", { message: mapped });
+      this.deps.emit("message:edit", { message: mapped });
+      this.deps.emit("message:delete", { messageId: mapped.id });
+      this.deps.emit("notification:new", { title: "Tello", message: mapped.text ?? "[Tin nhắn mới]" });
       this.deps.emit("chats", { chats: this.deps.store.listChats() });
     } catch (error) {
       console.error("[telegram] new message:", error);

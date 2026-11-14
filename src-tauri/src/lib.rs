@@ -38,6 +38,43 @@ fn core_send(payload: String, state: tauri::State<'_, CoreState>) -> Result<(), 
 }
 
 #[tauri::command]
+fn core_notify(title: String, message: String) -> Result<(), String> {
+    tauri::api::notification::notify(
+        &tauri::generate_context!(),
+        &tauri::Notification::new()
+            .title(&title)
+            .body(&message),
+    )
+    .map_err(|err| format!("Không thể hiển thị thông báo: {err}"))
+}
+
+#[tauri::command]
+fn core_save_credential(service: String, username: String, password: String) -> Result<(), String> {
+    use tauri::api::path::BaseDirectory;
+    use tauri::api::window::Window;
+    use tauri::api::credentials::save;
+    
+    save(
+        &tauri::generate_context!(),
+        &tauri::Credential::new()
+            .service(&service)
+            .username(&username)
+            .password(&password),
+    )
+    .map_err(|err| format!("Lưu credential thất bại: {err}"))
+}
+
+#[tauri::command]
+fn core_get_credential(service: String) -> Result<String, String> {
+    use tauri::api::credentials::get;
+    
+    match get(&tauri::generate_context!(), &service) {
+        Ok(cred) => Ok(format!("{}:{}", cred.username, cred.password)),
+        Err(_) => Err("Không tìm thấy credential".to_string()),
+    }
+}
+
+#[tauri::command]
 fn core_status(state: tauri::State<'_, CoreState>) -> bool {
     state
         .child
@@ -153,7 +190,7 @@ pub fn run() {
                 api.prevent_close();
             }
         })
-        .invoke_handler(tauri::generate_handler![core_send, core_status])
+        .invoke_handler(tauri::generate_handler![core_send, core_status, core_notify, core_save_credential, core_get_credential])
         .run(tauri::generate_context!())
         .expect("Lỗi khởi chạy Tello");
 }

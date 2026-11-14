@@ -18,6 +18,13 @@ interface Toast {
   text: string;
 }
 
+interface Reaction {
+  emoji: string;
+  userId: string;
+  username?: string;
+  at: number;
+}
+
 // Onboarding is a first-run hint, so remember the dismissal per profile
 // instead of showing it again after every restart.
 const ONBOARDING_KEY = "tello.onboardingDismissed";
@@ -45,6 +52,7 @@ interface AppState {
   auth: AuthStatus;
   chats: ChatSummary[];
   messages: Record<string, ChatMessage[]>;
+  reactions: Record<string, Reaction[]>; // chatId -> reactions
   activeChat: string | null;
   folder: Folder;
   search: string;
@@ -121,6 +129,7 @@ export const useApp = create<AppState>((set, get) => ({
   auth: EMPTY_AUTH,
   chats: [],
   messages: {},
+  reactions: {},
   activeChat: null,
   folder: "all",
   search: "",
@@ -180,6 +189,10 @@ export const useApp = create<AppState>((set, get) => ({
       case "chats":
         if (Array.isArray(data?.chats)) set({ chats: data.chats });
         break;
+      case "notification:new": {
+        get().toast(data?.kind ?? "info", data?.text ?? "");
+        break;
+      }
       case "messages":
         if (data?.chatId) {
           set((state) => ({
@@ -214,6 +227,62 @@ export const useApp = create<AppState>((set, get) => ({
             messages: {
               ...state.messages,
               [message.chatId]: list.map((item) => (item.id === message.id ? message : item)),
+            },
+          };
+        });
+        break;
+      }
+      case "message:edit": {
+        const message = data?.message as ChatMessage | undefined;
+        if (!message) break;
+        set((state) => {
+          const list = state.messages[message.chatId];
+          if (!list) return {};
+          return {
+            messages: {
+              ...state.messages,
+              [message.chatId]: list.map((item) =>
+                item.id === message.id ? { ...item, edit: message } : item
+              ),
+            },
+          };
+        });
+        break;
+      }
+      case "message:delete": {
+        const { chatId, messageId } = data ?? {};
+        if (!chatId || !messageId) break;
+        set((state) => {
+          const list = state.messages[chatId];
+          if (!list) return {};
+          return {
+            messages: {
+              ...state.messages,
+              [chatId]: list.filter((item) => item.id !== messageId),
+            },
+          };
+        });
+        break;
+      }
+      case "message:reaction": {
+        const { chatId, emoji, userId, username, at } = data ?? {};
+        if (!chatId || !emoji) break;
+        set((state) => {
+          const list = state.messages[chatId] ?? [];
+          const existing = list.find((m) => m.reactions?.some((r) => r.emoji === emoji && r.userId === userId));
+          if (existing && existing.reactions) {
+            existing.reactions = existing.reactions?.filter((r) => !(r.emoji === emoji && r.userId === userId))
+              .concat({ emoji, userId, username, at: at ?? Date.now() });
+          } else if (!existing) {
+            const newMsg = list.find((m) => m.id === chatId);
+            if (newMsg) {
+              newMsg.reactions = [{ emoji, userId, username, at: at ?? Date.now() }];
+            }
+          }
+          return {
+            messages: {
+              ...state.messages,
+              [chatId]: list,
             },
           };
         });

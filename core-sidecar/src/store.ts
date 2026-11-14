@@ -209,6 +209,14 @@ export class LocalStore {
       );
   }
 
+  syncHistory(chatId: string, limit = 200): void {
+    const messages = this.listMessages(chatId, limit);
+    for (const msg of messages) {
+      this.deps.emit("message:new", { message: msg });
+    }
+    get().toast("info", `Đã đồng bộ ${messages.length} tin nhắn từ ${chatId}`);
+  }
+
   listMessages(chatId: string, limit = 100): ChatMessage[] {
     const rows = this.db
       .query<MessageRow, any[]>(

@@ -33,6 +33,15 @@ export interface ChatMessage {
   media?: MessageMedia;
   pending?: boolean;
   failed?: boolean;
+  edit?: ChatMessage; // For edited messages (original message data)
+  reactions?: Reaction[]; // Emoji reactions
+}
+
+export interface Reaction {
+  emoji: string;
+  userId: string;
+  username?: string;
+  at: number;
 }
 
 export type AuthPhase =
