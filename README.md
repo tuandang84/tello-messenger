@@ -27,6 +27,14 @@ tức thì, và **đẩy tệp Zalo lên kho Telegram** để giải phóng ổ 
 - **Khay hệ thống**: đóng cửa sổ (X) chỉ ẩn xuống tray, thoát hẳn bằng menu tray.
 - **Giao diện tối, tiếng Việt**, tối ưu cho Windows.
 
+## Cài đặt nhanh (người dùng)
+
+1. Tải `Tello_0.1.0_x64-setup.exe` ở trang **[Releases](https://github.com/tuandang84/tello-messenger/releases/latest)**.
+2. Chạy file cài đặt (Windows 10/11 x64, cần WebView2 Runtime — có sẵn trên Windows 11).
+3. Mở **Tello**, chọn Telegram hoặc Zalo để đăng nhập.
+
+Không cần cài Node.js, Bun hay Rust nếu bạn chỉ dùng ứng dụng.
+
 ## Kiến trúc
 
 ```
@@ -61,7 +69,7 @@ Mọi thứ chạy trên máy bạn. Không có server trung gian của Tello.
 ## Cài đặt và chạy
 
 ```powershell
-git clone https://github.com/<username>/tello-messenger.git
+git clone https://github.com/tuandang84/tello-messenger.git
 cd tello-messenger
 
 npm install          # phụ thuộc giao diện
@@ -80,7 +88,7 @@ npm run tauri build
 > Sidecar đã biên dịch (`src-tauri/binaries/*.exe`, ~120 MB) không nằm trong repo.
 > Bạn **phải** chạy `npm run sidecar:build` trước khi `npm run tauri dev` hoặc `npm run tauri build`.
 
-Tuỳ chọn: tạo lại icon từ `assets/tello.svg` bằng `npm run icon`.
+Tuỳ chọn: tạo lại icon bằng `npm run icon` (nguồn: `app-icon.png`, chuyển từ `Logo.png` gốc).
 
 ## Phát hành lên GitHub
 
@@ -143,7 +151,7 @@ chứa dữ liệu cá nhân. Xoá cả thư mục trên để đăng xuất ho�
 - **Lịch sử Zalo**: chỉ nhóm có API lịch sử; tin nhắn riêng được ghi lại từ khi Tello kết nối.
 - Chưa hỗ trợ: chỉnh sửa/xoá tin nhắn, thả cảm xúc, gọi điện, render sticker động, thông báo
   desktop, tự cập nhật.
-- Danh sách tin nhắn chưa ảo hoá (virtualized) — hội thoại rất dài có thể chậm.
+- Danh sách tin nhắn chỉ dựng 120 tin mới nhất của hội thoại đang mở (chưa có ảo hoá đầy đủ).
 
 ## Lộ trình
 

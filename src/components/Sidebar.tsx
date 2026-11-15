@@ -55,7 +55,9 @@ export function Sidebar() {
     <aside className="sidebar">
       <div className="sidebar-head">
         <div className="brand">
-          <div className="brand-mark">T</div>
+          <div className="brand-mark">
+            <img src="/logo.png" alt="Tello" />
+          </div>
           <div className="brand-text">
             <strong>Tello</strong>
             <span>Telegram + Zalo</span>

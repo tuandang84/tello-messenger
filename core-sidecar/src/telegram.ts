@@ -338,9 +338,13 @@ export class TelegramBridge {
         !mapped.outgoing && !isActive,
       );
       this.deps.emit("message:new", { message: mapped });
-      this.deps.emit("message:edit", { message: mapped });
-      this.deps.emit("message:delete", { messageId: mapped.id });
-      this.deps.emit("notification:new", { title: "Tello", message: mapped.text ?? "[Tin nhắn mới]" });
+      if (!mapped.outgoing) {
+        const preview = mapped.text || mapped.media?.name || "[Tệp tin]";
+        this.deps.emit("notification:new", {
+          kind: "info",
+          text: `${chat.title}: ${preview}`,
+        });
+      }
       this.deps.emit("chats", { chats: this.deps.store.listChats() });
     } catch (error) {
       console.error("[telegram] new message:", error);

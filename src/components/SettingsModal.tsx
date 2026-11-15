@@ -23,9 +23,9 @@ export function SettingsModal() {
 
   useEffect(() => {
     if (!open || !info) return;
-    setApiId(String(info.config.telegramApiId));
-    setApiHash(info.config.telegramApiHash);
-    setVaultPeer(info.config.vaultPeer);
+    setApiId(String(info.config?.telegramApiId ?? ""));
+    setApiHash(info.config?.telegramApiHash ?? "");
+    setVaultPeer(info.config?.vaultPeer ?? "me");
   }, [open, info]);
 
   useEffect(() => {

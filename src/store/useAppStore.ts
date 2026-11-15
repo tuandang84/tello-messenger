@@ -109,18 +109,40 @@ function errorText(error: unknown): string {
 
 function mergeMessages(existing: ChatMessage[] = [], incoming: ChatMessage[]): ChatMessage[] {
   const map = new Map<string, ChatMessage>();
-  for (const message of existing) map.set(message.id, message);
-  for (const message of incoming) {
+  const add = (message: ChatMessage | undefined | null) => {
+    if (!message || !message.id) return;
     const current = map.get(message.id);
     map.set(message.id, current ? { ...current, ...message } : message);
-  }
-  return [...map.values()].sort((a, b) => a.at - b.at);
+  };
+  for (const message of existing) add(message);
+  for (const message of Array.isArray(incoming) ? incoming : []) add(message);
+  return [...map.values()].sort((a, b) => (a.at || 0) - (b.at || 0));
 }
 
 function normalizeQr(image: string): string {
   if (!image) return "";
   if (image.startsWith("data:") || image.startsWith("http")) return image;
   return `data:image/png;base64,${image}`;
+}
+
+// The sidecar can hand back partially filled rows (a dialog without a title, a
+// chat that never received a message). Fill the gaps so the sidebar can always
+// render, instead of throwing on an undefined title somewhere down the tree.
+function normalizeChats(list: unknown): ChatSummary[] {
+  if (!Array.isArray(list)) return [];
+  return list
+    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object")
+    .filter((item) => Boolean(item.id))
+    .map((item) => ({
+      id: String(item.id),
+      network: item.network === "zalo" ? "zalo" : "telegram",
+      title: typeof item.title === "string" && item.title.trim() ? item.title : "Hội thoại không tên",
+      isGroup: Boolean(item.isGroup),
+      unread: Number(item.unread) || 0,
+      lastAt: Number(item.lastAt) || 0,
+      lastText: typeof item.lastText === "string" ? item.lastText : "",
+      avatar: typeof item.avatar === "string" ? item.avatar : undefined,
+    }));
 }
 
 export const useApp = create<AppState>((set, get) => ({
@@ -155,7 +177,7 @@ export const useApp = create<AppState>((set, get) => ({
         call<ChatSummary[]>("chats.list"),
         call<VaultStatus>("vault.status"),
       ]);
-      set({ info, auth: info.auth, chats, vault, booted: true, coreError: null });
+      set({ info, auth: info.auth, chats: normalizeChats(chats), vault, booted: true, coreError: null });
     } catch (error) {
       set({ booted: true, coreError: errorText(error) });
     }
@@ -166,31 +188,34 @@ export const useApp = create<AppState>((set, get) => ({
       case "core:ready": {
         set((state) => ({
           booted: true,
-          auth: data.auth ?? state.auth,
-          chats: data.chats ?? state.chats,
-          vault: data.vault ?? state.vault,
+          auth: data?.auth ?? state.auth,
+          chats: data?.chats ? normalizeChats(data.chats) : state.chats,
+          vault: data?.vault ?? state.vault,
           info: state.info
-            ? { ...state.info, config: data.config ?? state.info.config }
+            ? { ...state.info, config: data?.config ?? state.info.config }
             : state.info,
         }));
         break;
       }
       case "auth:status": {
         set((state) => {
-          const nextAuth = { ...state.auth, ...data } as AuthStatus;
-          const connected = nextAuth.telegram.connected;
+          const nextAuth: AuthStatus = {
+            telegram: { ...state.auth.telegram, ...(data?.telegram ?? {}) },
+            zalo: { ...state.auth.zalo, ...(data?.zalo ?? {}) },
+          };
           return {
             auth: nextAuth,
-            telegramStep: connected ? "phone" : state.telegramStep,
+            telegramStep: nextAuth.telegram.connected ? "phone" : state.telegramStep,
           };
         });
         break;
       }
       case "chats":
-        if (Array.isArray(data?.chats)) set({ chats: data.chats });
+        if (Array.isArray(data?.chats)) set({ chats: normalizeChats(data.chats) });
         break;
       case "notification:new": {
-        get().toast(data?.kind ?? "info", data?.text ?? "");
+        const text = data?.text ?? data?.message ?? data?.title ?? "";
+        if (text) get().toast(data?.kind === "error" ? "error" : "info", text);
         break;
       }
       case "messages":
@@ -265,24 +290,24 @@ export const useApp = create<AppState>((set, get) => ({
         break;
       }
       case "message:reaction": {
-        const { chatId, emoji, userId, username, at } = data ?? {};
-        if (!chatId || !emoji) break;
+        const { chatId, messageId, emoji, userId, username, at } = data ?? {};
+        if (!chatId || !messageId || !emoji) break;
         set((state) => {
-          const list = state.messages[chatId] ?? [];
-          const existing = list.find((m) => m.reactions?.some((r) => r.emoji === emoji && r.userId === userId));
-          if (existing && existing.reactions) {
-            existing.reactions = existing.reactions?.filter((r) => !(r.emoji === emoji && r.userId === userId))
-              .concat({ emoji, userId, username, at: at ?? Date.now() });
-          } else if (!existing) {
-            const newMsg = list.find((m) => m.id === chatId);
-            if (newMsg) {
-              newMsg.reactions = [{ emoji, userId, username, at: at ?? Date.now() }];
-            }
-          }
+          const list = state.messages[chatId];
+          if (!list) return {};
           return {
             messages: {
               ...state.messages,
-              [chatId]: list,
+              [chatId]: list.map((item) => {
+                if (item.id !== messageId) return item;
+                const current = item.reactions ?? [];
+                const mine = (reaction: Reaction) =>
+                  reaction.emoji === emoji && reaction.userId === userId;
+                const reactions = current.some(mine)
+                  ? current.filter((reaction) => !mine(reaction))
+                  : [...current, { emoji, userId, username, at: at ?? Date.now() }];
+                return { ...item, reactions };
+              }),
             },
           };
         });
@@ -311,12 +336,6 @@ export const useApp = create<AppState>((set, get) => ({
         set((state) => ({
           telegramStep: "password",
           auth: { ...state.auth, telegram: { ...state.auth.telegram, phase: "waiting_password" } },
-        }));
-        break;
-      case "tg:need_qr":
-        set((state) => ({
-          telegramStep: "qr",
-          auth: { ...state.auth, telegram: { ...state.auth.telegram, phase: "waiting_qr" } },
         }));
         break;
       case "tg:need_qr":
@@ -423,7 +442,7 @@ export const useApp = create<AppState>((set, get) => ({
   refresh: async () => {
     try {
       const chats = await call<ChatSummary[]>("chats.refresh");
-      set({ chats });
+      set({ chats: normalizeChats(chats) });
       get().toast("info", "Đã đồng bộ danh sách hội thoại");
     } catch (error) {
       get().toast("error", errorText(error));
@@ -523,9 +542,11 @@ export const useApp = create<AppState>((set, get) => ({
   },
 
   toast: (kind, text) => {
-    if (!text) return;
+    // A malformed payload must never reach React as an object child.
+    const message = typeof text === "string" ? text : String(text ?? "");
+    if (!message) return;
     const id = Date.now() + Math.random();
-    set((state) => ({ toasts: [...state.toasts, { id, kind, text }] }));
+    set((state) => ({ toasts: [...state.toasts, { id, kind, text: message }] }));
     window.setTimeout(() => get().dismissToast(id), 4500);
   },
 

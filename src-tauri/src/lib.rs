@@ -38,43 +38,6 @@ fn core_send(payload: String, state: tauri::State<'_, CoreState>) -> Result<(), 
 }
 
 #[tauri::command]
-fn core_notify(title: String, message: String) -> Result<(), String> {
-    tauri::api::notification::notify(
-        &tauri::generate_context!(),
-        &tauri::Notification::new()
-            .title(&title)
-            .body(&message),
-    )
-    .map_err(|err| format!("Không thể hiển thị thông báo: {err}"))
-}
-
-#[tauri::command]
-fn core_save_credential(service: String, username: String, password: String) -> Result<(), String> {
-    use tauri::api::path::BaseDirectory;
-    use tauri::api::window::Window;
-    use tauri::api::credentials::save;
-    
-    save(
-        &tauri::generate_context!(),
-        &tauri::Credential::new()
-            .service(&service)
-            .username(&username)
-            .password(&password),
-    )
-    .map_err(|err| format!("Lưu credential thất bại: {err}"))
-}
-
-#[tauri::command]
-fn core_get_credential(service: String) -> Result<String, String> {
-    use tauri::api::credentials::get;
-    
-    match get(&tauri::generate_context!(), &service) {
-        Ok(cred) => Ok(format!("{}:{}", cred.username, cred.password)),
-        Err(_) => Err("Không tìm thấy credential".to_string()),
-    }
-}
-
-#[tauri::command]
 fn core_status(state: tauri::State<'_, CoreState>) -> bool {
     state
         .child
@@ -135,6 +98,25 @@ fn spawn_core(app: &tauri::AppHandle, state: &CoreState) -> Result<(), String> {
     Ok(())
 }
 
+/// The window configured in `tauri.conf.json` is 1220x820 logical. That does
+/// not fit the work area of a 1080p laptop at 150% scaling (1280x672 logical),
+/// so Windows would place the composer below the screen edge. When the default
+/// size does not fit, let Windows maximise the window instead of resizing it
+/// below the content's design width.
+fn fit_window(app: &tauri::App) {
+    let Some(window) = app.get_webview_window("main") else {
+        return;
+    };
+    let Ok(Some(monitor)) = window.current_monitor() else {
+        return;
+    };
+    let area = monitor.work_area();
+    let work = area.size.to_logical::<f64>(monitor.scale_factor());
+    if work.width < 1220.0 || work.height < 820.0 {
+        let _ = window.maximize();
+    }
+}
+
 fn build_tray(app: &tauri::App) -> tauri::Result<()> {
     let show = MenuItem::with_id(app, "show", "Mở Tello", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Thoát hẳn", true, None::<&str>)?;
@@ -181,6 +163,7 @@ pub fn run() {
                 }
                 let _ = app.handle().emit("core:error", error);
             }
+            fit_window(app);
             build_tray(app)?;
             Ok(())
         })
@@ -190,7 +173,7 @@ pub fn run() {
                 api.prevent_close();
             }
         })
-        .invoke_handler(tauri::generate_handler![core_send, core_status, core_notify, core_save_credential, core_get_credential])
+        .invoke_handler(tauri::generate_handler![core_send, core_status])
         .run(tauri::generate_context!())
         .expect("Lỗi khởi chạy Tello");
 }

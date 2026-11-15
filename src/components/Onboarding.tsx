@@ -38,7 +38,9 @@ export function Onboarding() {
       <div className="onboarding-panel">
         <section className="onboarding-hero">
           <div className="hero-brand">
-            <div className="brand-mark large">T</div>
+            <div className="brand-mark large">
+              <img src="/logo.png" alt="Tello" />
+            </div>
             <span>Tello</span>
           </div>
           <h1>Một cửa sổ cho Telegram và Zalo</h1>

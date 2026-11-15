@@ -16,10 +16,11 @@
         "title": "Tello",
         "width": 1220,
         "height": 820,
-        "minWidth": 960,
-        "minHeight": 640,
+        "minWidth": 760,
+        "minHeight": 440,
         "center": true,
-        "resizable": true
+        "resizable": true,
+        "theme": "Dark"
       }
     ],
     "security": {

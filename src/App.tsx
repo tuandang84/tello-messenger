@@ -122,7 +122,9 @@ function Splash({ label }: { label: string }) {
   return (
     <div className="splash" role="status" aria-live="polite">
       <div className="splash-card">
-        <div className="splash-mark">T</div>
+        <div className="splash-mark">
+          <img src="/logo.png" alt="" />
+        </div>
         <strong>Tello</strong>
         <span className="splash-line">
           <span className="spinner small" /> {label}

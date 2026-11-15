@@ -11,7 +11,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "sidecar:build": "cd core-sidecar && bun install && bun run build",
-    "icon": "tauri icon assets/tello.svg"
+    "icon": "tauri icon app-icon.png"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.0",

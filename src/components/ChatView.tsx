@@ -19,7 +19,9 @@ export function ChatView() {
     return (
       <main className="chat-pane empty">
         <div className="welcome">
-          <div className="welcome-logo">T</div>
+          <div className="welcome-logo">
+            <img src="/logo.png" alt="Tello" />
+          </div>
           <h1>Hộp thư hợp nhất của bạn</h1>
           <p>
             Telegram và Zalo trong cùng một cửa sổ. Tệp Zalo được đẩy lên kho Telegram để giải phóng ổ
